@@ -121,8 +121,6 @@ CSI_PROVISIONER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/exte
 : ${CSI_PROVISIONER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-provisioner.yaml" csi-provisioner "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
 CSI_ATTACHER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-attacher/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-attacher.yaml" csi-attacher false)/deploy/kubernetes/rbac.yaml"
 : ${CSI_ATTACHER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-attacher/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-attacher.yaml" csi-attacher "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
-CSI_SNAPSHOTTER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-snapshotter.yaml" csi-snapshotter false)/deploy/kubernetes/${SNAPSHOTTER_RBAC_RELATIVE_PATH}"
-: ${CSI_SNAPSHOTTER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-snapshotter.yaml" csi-snapshotter "${UPDATE_RBAC_RULES}")/deploy/kubernetes/${SNAPSHOTTER_RBAC_RELATIVE_PATH}}
 CSI_RESIZER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-resizer/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-resizer.yaml" csi-resizer false)/deploy/kubernetes/rbac.yaml"
 : ${CSI_RESIZER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-resizer/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-resizer.yaml" csi-resizer "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
 
@@ -135,13 +133,13 @@ update_image () {
 }
 
 run () {
-    echo "$@" >&2
+    echo "$@" #>&2
     "$@"
 }
 
 # rbac rules
 echo "applying RBAC rules"
-for component in CSI_PROVISIONER CSI_ATTACHER CSI_SNAPSHOTTER CSI_RESIZER; do
+for component in CSI_PROVISIONER CSI_ATTACHER CSI_RESIZER; do
     eval current="\${${component}_RBAC}"
     eval original="\${${component}_RBAC_YAML}"
     if [ "$current" != "$original" ]; then
@@ -191,6 +189,7 @@ for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
         fi
         echo "$line"
     done)"
+    echo $modified
     if ! echo "$modified" | kubectl apply -f -; then
         echo "modified version of $i:"
         echo "$modified"
@@ -202,13 +201,12 @@ done
 # about the deployment here, otherwise we wouldn't know what to wait
 # for: the expectation is that we run attacher, provisioner,
 # snapshotter, resizer, socat and hostpath plugin in the default namespace.
-expected_running_pods=6
+expected_running_pods=5
 cnt=0
-while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt $expected_running_pods ] || ! kubectl describe volumesnapshotclasses.snapshot.storage.k8s.io 2>/dev/null >/dev/null; do
-    if [ $cnt -gt 30 ]; then
+while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt $expected_running_pods ]; do
+    if [ $cnt -gt 5 ]; then
         echo "$(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) running pods:"
         kubectl describe pods
-        (set -x; kubectl describe volumesnapshotclasses.snapshot.storage.k8s.io) || true
 
         echo >&2 "ERROR: hostpath deployment not ready after over 5min"
         exit 1
