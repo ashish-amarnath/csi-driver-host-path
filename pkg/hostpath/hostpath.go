@@ -155,6 +155,7 @@ func getVolumeByName(volName string) (hostPathVolume, error) {
 }
 
 func getSnapshotByName(name string) (hostPathSnapshot, error) {
+	glog.V(3).Infof("Getting snapshot w/ name %s", name)
 	for _, snapshot := range hostPathVolumeSnapshots {
 		if snapshot.Name == name {
 			return snapshot, nil

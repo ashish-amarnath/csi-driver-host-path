@@ -294,12 +294,15 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 	}
 
 	if len(req.GetName()) == 0 {
+		glog.V(3).Infof("Name is missing in request: %v", req)
 		return nil, status.Error(codes.InvalidArgument, "Name missing in request")
 	}
 	// Check arguments
 	if len(req.GetSourceVolumeId()) == 0 {
+		glog.V(3).Infof("SourceVolumeId is missing in request: %v", req)
 		return nil, status.Error(codes.InvalidArgument, "SourceVolumeId missing in request")
 	}
+	glog.V(3).Infof("Valid CreateSnapshot request %v", req)
 
 	// Need to check for already existing snapshot name, and if found check for the
 	// requested sourceVolumeId and sourceVolumeId of snapshot that has been created.
@@ -321,7 +324,13 @@ func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateS
 		return nil, status.Errorf(codes.AlreadyExists, "snapshot with the same name: %s but with different SourceVolumeId already exist", req.GetName())
 	}
 
+	glog.V(3).Infof("GettingSourceVolumeID for req: [%s], SourceVolumeId: [%s]", req.Name, req.SourceVolumeId)
 	volumeID := req.GetSourceVolumeId()
+	glog.V(3).Infof("Listing all hotPathVolumes")
+	for k, v := range hostPathVolumes {
+		glog.V(3).Infof("%s: %s", k, fmt.Sprintf("[%s: %s: %s]", v.VolName, v.VolID, v.VolPath))
+	}
+	glog.V(3).Infof("looking hostPathVolumes map for hostpathVolume %s", volumeID)
 	hostPathVolume, ok := hostPathVolumes[volumeID]
 	if !ok {
 		return nil, status.Error(codes.Internal, "volumeID is not exist")

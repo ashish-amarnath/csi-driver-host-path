@@ -204,7 +204,7 @@ done
 expected_running_pods=5
 cnt=0
 while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt $expected_running_pods ]; do
-    if [ $cnt -gt 5 ]; then
+    if [ $cnt -gt 12 ]; then
         echo "$(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) running pods:"
         kubectl describe pods
 
