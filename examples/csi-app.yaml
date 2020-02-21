@@ -2,6 +2,7 @@ kind: Pod
 apiVersion: v1
 metadata:
   name: my-csi-app
+  namespace: csi-app
 spec:
   containers:
     - name: my-frontend
